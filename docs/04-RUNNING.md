@@ -248,9 +248,95 @@ Continue to:
 
 ---
 
+## Detailed Validation Queries
+
+For deeper troubleshooting, use these individual diagnostic queries:
+
+### Check Individual Layers
+```sql
+-- Raw table
+SELECT COUNT(*) FROM SNOWFLAKE_EXAMPLE.STAGE_BADGE_TRACKING.RAW_BADGE_EVENTS;
+
+-- Staging table
+SELECT COUNT(*) FROM SNOWFLAKE_EXAMPLE.TRANSFORM_BADGE_TRACKING.STG_BADGE_EVENTS;
+
+-- Fact table
+SELECT COUNT(*) FROM SNOWFLAKE_EXAMPLE.ANALYTICS_BADGE_TRACKING.FCT_ACCESS_EVENTS;
+```
+
+### Check Stream Status
+```sql
+SELECT SYSTEM$STREAM_HAS_DATA(
+  'SNOWFLAKE_EXAMPLE.STAGE_BADGE_TRACKING.raw_badge_events_stream'
+) AS has_data;
+```
+
+### Check Task Execution
+```sql
+SELECT name, state, scheduled_time, error_message
+FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY(
+    SCHEDULED_TIME_RANGE_START => DATEADD('hour', -1, CURRENT_TIMESTAMP())
+))
+WHERE database_name = 'SNOWFLAKE_EXAMPLE'
+ORDER BY scheduled_time DESC LIMIT 10;
+```
+
+### Check Processing Latency
+```sql
+SELECT 
+    MIN(DATEDIFF('second', ingestion_time, fact_load_time)) AS min_latency_sec,
+    AVG(DATEDIFF('second', ingestion_time, fact_load_time)) AS avg_latency_sec,
+    MAX(DATEDIFF('second', ingestion_time, fact_load_time)) AS max_latency_sec
+FROM SNOWFLAKE_EXAMPLE.ANALYTICS_BADGE_TRACKING.FCT_ACCESS_EVENTS;
+```
+
+---
+
+## Troubleshooting
+
+### Problem: Row counts don't match
+**Cause:** Tasks still processing  
+**Solution:** Wait 1-2 minutes, re-run validation
+
+### Problem: Stream still has data
+**Cause:** Tasks haven't consumed stream  
+**Solution:** Wait 1-2 minutes and recheck
+
+### Problem: Fact count < Staging count
+**Cause:** Missing dimension keys  
+**Check:**
+```sql
+SELECT s.user_id, COUNT(*) AS event_count
+FROM SNOWFLAKE_EXAMPLE.TRANSFORM_BADGE_TRACKING.STG_BADGE_EVENTS s
+LEFT JOIN SNOWFLAKE_EXAMPLE.ANALYTICS_BADGE_TRACKING.DIM_USERS u 
+    ON s.user_id = u.user_id AND u.is_current = TRUE
+WHERE u.user_key IS NULL
+GROUP BY s.user_id;
+```
+
+### Problem: Tasks show errors
+```sql
+SELECT name, error_code, error_message
+FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY())
+WHERE database_name = 'SNOWFLAKE_EXAMPLE' AND state = 'FAILED'
+ORDER BY scheduled_time DESC;
+```
+
+---
+
+## Success Criteria
+
+✅ **Pipeline working correctly if:**
+- RAW = STAGING = ANALYTICS counts match
+- Stream status = False (empty)
+- No failed tasks
+- Processing latency < 120 seconds
+- All dimension keys resolved
+
+---
+
 ## Additional Resources
 
-- **Validation Guide:** [`VALIDATION_GUIDE.md`](VALIDATION_GUIDE.md)
 - **Monitoring:** [`05-MONITORING.md`](05-MONITORING.md)
 - **REST API:** [`REST_API_GUIDE.md`](REST_API_GUIDE.md)
 

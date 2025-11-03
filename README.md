@@ -71,6 +71,27 @@ This project demonstrates how to ingest several million RFID badge events over a
 - **In-Flight Transformations**: Clean, validate, and enrich data during ingestion
 - **Complete Pipeline**: Raw → Staging → Analytics with CDC using Streams and Tasks
 - **Production Ready**: Monitoring, data quality checks, real-time dashboards, and comprehensive documentation
+- **Enterprise Ready**: Built-in monitoring, Streams + Tasks CDC pattern, and extensible partner onboarding blueprint
+
+### For Enterprise & Partner Deployments
+
+This project doubles as a **customer-partner playbook** for repeatable RFID vendor integrations:
+
+| Phase | Customer Team Owns | Partner/Vendor Owns |
+|-------|-------------------|---------------------|
+| **0. Success Alignment** | Define access outcomes, SLAs, data retention, compliance tagging | Share deployment constraints, badge schema, sample payloads |
+| **1. Foundation** | Execute numbered SQL scripts (`sql/01_setup/`) | N/A |
+| **2. Vendor Integration** | Issue Snowflake credentials, configure Snowpipe Streaming pipe | Plug RFID readers into provided REST endpoint, map fields to schema |
+| **3. Validation & QA** | Run data-quality checks (`sql/04_data_quality/`) | Provide test payloads, confirm data governance requirements |
+| **4. Monitoring & Dashboards** | Create Snowsight worksheets or BI dashboards for security teams | Confirm operational KPIs and alerting thresholds |
+| **5. Scale Out** | Define partner onboarding checklist, clone schemas for multi-vendor | Reuse automation scripts and REST endpoints for each location |
+
+**Key Benefits for Enterprise:**
+- **<10 second latency** from badge scan to analytics view, meeting real-time security SLAs
+- **Zero middleware** - RFID vendors POST directly to Snowflake, eliminating infrastructure management
+- **Built-in CDC** - Streams + Tasks pattern keeps compute off until changes arrive, minimizing spend
+- **Partner-ready artifacts** - REST API templates, field mappings, simulator, and scaling playbook included
+- **Extensible governance** - Add partners by cloning schemas, creating new pipes/channels, reusing tag model
 
 ## Quick Start
 

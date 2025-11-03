@@ -377,9 +377,55 @@ Continue to:
 
 ---
 
+## Troubleshooting
+
+### Problem: Python command not found
+
+**Windows Solution:**
+- Ensure "Add Python to PATH" was checked during installation
+- Or add manually: Search "Environment Variables" → Edit PATH → Add Python directory
+- Try `py` instead of `python`
+
+**macOS/Linux Solution:**
+- Try `python3` instead of `python`
+- Install via package manager if needed
+
+### Problem: Permission denied (macOS/Linux)
+
+**Solution:** Make scripts executable
+```bash
+chmod +x tools/check.sh tools/deploy.sh tools/simulate.sh tools/validate.sh
+```
+
+### Problem: Script won't run (Windows)
+
+**Solution:** Allow PowerShell scripts
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+Or use `.bat` files instead of `.sh`.
+
+### Problem: ModuleNotFoundError
+
+**Solution:**
+```bash
+# Verify venv is activated (prompt shows venv name)
+# Reinstall dependencies
+pip install -r python/requirements.txt
+```
+
+### Problem: Snowflake CLI not found
+
+**Solution:**
+- Verify: `snow --version`
+- Install from [Snowflake CLI Docs](https://docs.snowflake.com/en/developer-guide/snowflake-cli-v2/installation/installation)
+- Restart terminal
+
+---
+
 ## Additional Resources
 
-- **Platform-Specific Help:** [`PLATFORM_GUIDE.md`](PLATFORM_GUIDE.md)
 - **Snowflake CLI Docs:** [docs.snowflake.com](https://docs.snowflake.com/en/developer-guide/snowflake-cli-v2)
 - **Python Installation:** [python.org](https://www.python.org/)
 - **Quick Start:** [`../QUICKSTART.md`](../QUICKSTART.md) for 5-minute demo
