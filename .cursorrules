@@ -1,0 +1,306 @@
+# Streaming-Ingest Project Structure & Standards
+
+## Project Organization Rules
+
+### Directory Structure
+```
+project_root/
+├── README.md                 # Project overview, points to QUICKSTART
+├── QUICKSTART.md            # 5-minute getting started guide
+├── CROSS_PLATFORM.md        # Platform compatibility info
+├── docs/                    # All documentation (numbered guides)
+├── tools/                   # Cross-platform CLI wrappers
+├── sql/                     # SQL scripts (numbered by purpose)
+├── python/                  # All Python code
+├── config/                  # Configuration templates
+└── examples/               # Sample code and data
+```
+
+### Documentation Standards (`docs/`)
+
+**Naming Convention:**
+- Numbered guides: `01-SETUP.md`, `02-DEPLOYMENT.md`, etc.
+- Reference docs: `PLATFORM_GUIDE.md`, `ARCHITECTURE.md`, etc.
+- Always use UPPERCASE with hyphens
+
+**Numbered Guide Sequence:**
+1. `01-SETUP.md` - Prerequisites and installation
+2. `02-DEPLOYMENT.md` - Deploy to target platform
+3. `03-CONFIGURATION.md` - Configuration and authentication
+4. `04-RUNNING.md` - Running and operating the system
+5. `05-MONITORING.md` - Monitoring and troubleshooting
+
+**Every guide must:**
+- Start with a clear goal statement
+- Include prerequisites section
+- Provide step-by-step instructions
+- Show expected outputs
+- Include troubleshooting section
+- Link to next/previous guides
+
+### SQL Organization (`sql/`)
+
+**Directory Naming:**
+- Use numbered prefixes: `01_`, `02_`, `03_`, `99_`
+- Lowercase with underscores
+- Purpose-based naming: `01_setup/`, `02_validation/`, `99_cleanup/`
+
+**File Naming:**
+- Numbered sequence within each directory: `01_database.sql`, `02_tables.sql`
+- Descriptive names: `monitoring_views.sql`, `dq_checks.sql`
+- Always lowercase with underscores
+
+**SQL Script Standards:**
+- Every script must have a header comment block
+- Include: Purpose, Target objects, Dependencies
+- Use consistent formatting (see Snowflake Architect's Handbook rules)
+- Scripts must be idempotent (can run multiple times safely)
+
+### Python Code (`python/`)
+
+**Module Structure:**
+```
+python/
+├── requirements.txt         # All dependencies with versions
+├── setup.py                # Package configuration
+├── cli/                    # Command-line interface tools
+├── simulator/              # Core business logic
+├── shared/                 # Shared utilities and models
+└── tests/                  # Unit and integration tests
+```
+
+**Module Naming:**
+- Lowercase with underscores: `cli/`, `simulator/`, `shared/`
+- File names match purpose: `check.py`, `validate.py`, `models.py`
+- Use `__main__.py` for executable modules
+
+**Python Standards:**
+- Type hints required for all functions
+- Docstrings required for all public functions/classes
+- Follow PEP 8 style guide
+- Use `pathlib.Path` for file operations (cross-platform)
+- Every module must have unit tests in `tests/`
+
+### Cross-Platform Tools (`tools/`)
+
+**Naming Convention:**
+- Simple, verb-based names: `check`, `deploy`, `simulate`, `validate`
+- No file extensions on Unix wrappers
+- `.bat` extension on Windows wrappers
+
+**Implementation Pattern:**
+```bash
+# Unix wrapper (tools/check)
+#!/usr/bin/env python
+from python.cli.check import main
+if __name__ == '__main__':
+    main()
+
+# Windows wrapper (tools/check.bat)
+@echo off
+python -m python.cli.check %*
+```
+
+**Every tool must:**
+- Work on Windows, macOS, and Linux
+- Accept `--help` flag
+- Provide clear error messages
+- Exit with proper status codes (0 = success, 1 = failure)
+- Support `--debug` or `--verbose` flags
+
+### Configuration (`config/`)
+
+**File Standards:**
+- Provide `.env.example` template
+- Never commit actual `.env` file
+- Document all variables in comments
+- Use environment variables, not hardcoded values
+- Support both relative and absolute paths
+
+### Testing (`python/tests/`)
+
+**Test Standards:**
+- One test file per module: `test_check.py` for `cli/check.py`
+- Use pytest framework
+- Test naming: `test_<function_name>_<scenario>`
+- Mock external dependencies (Snowflake API, filesystem)
+- Achieve 80%+ code coverage
+
+**Required Tests:**
+- Unit tests for all business logic
+- Integration tests for CLI tools
+- Cross-platform path handling tests
+- Error handling and edge cases
+
+## Code Standards
+
+### Cross-Platform Compatibility
+
+**Always use:**
+- `pathlib.Path` for file paths
+- `os.path.join()` as fallback
+- `sys.platform` checks when needed
+- Platform-agnostic subprocess calls
+
+**Never use:**
+- Hardcoded `/` or `\` in paths
+- Bash-specific syntax in Python scripts
+- Platform-specific commands without fallbacks
+
+### Error Handling
+
+**All CLI tools must:**
+- Catch and handle exceptions gracefully
+- Print user-friendly error messages
+- Suggest corrective actions
+- Log detailed errors to stderr
+- Exit with non-zero status on failure
+
+### User Experience
+
+**CLI Output Standards:**
+- Use colors for better readability (with fallback)
+- Show progress for long operations
+- Provide clear success/failure indicators (✓/✗)
+- Include "Next steps" in output
+- Support quiet/verbose modes
+
+## Git Standards
+
+### Commit Messages
+- Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
+- First line: brief summary (50 chars)
+- Body: detailed explanation
+- Reference issues: `Fixes #123`
+
+### Branch Naming
+- Feature branches: `feature/cross-platform-tools`
+- Bug fixes: `fix/timestamp-format`
+- Documentation: `docs/platform-guide`
+
+### Files to Ignore
+```
+.env
+*.pyc
+__pycache__/
+*.p8
+*.pem
+.DS_Store
+*.swp
+venv/
+.pytest_cache/
+```
+
+## Documentation Writing Rules
+
+### Markdown Standards
+- Use ATX headers (`#`, `##`, `###`)
+- Code blocks must specify language
+- Include table of contents for long docs
+- Use emoji sparingly (only for navigation: 📘, 🚀, ⚠️)
+- Link between related documents
+
+### Examples
+- Always provide working examples
+- Show both Windows and Unix commands
+- Include expected output
+- Explain what each command does
+
+### Screenshots/Diagrams
+- Use ASCII diagrams for structure
+- Keep diagrams in documentation
+- Update diagrams when structure changes
+
+## Project-Specific Rules
+
+### Snowflake SQL
+- Follow "Snowflake Architect's Handbook" rules
+- Always use database: `SNOWFLAKE_EXAMPLE`
+- Use prefixed schemas: `STAGE_`, `TRANSFORM_`, `ANALYTICS_`
+- Cluster large tables by date
+- Use QUALIFY for window function filtering
+
+### RFID Simulator
+- Event timestamps must be TIMESTAMP_NTZ format
+- Use realistic data distributions
+- Support configurable rates and durations
+- Validate events before sending
+- Handle API errors gracefully
+
+### Pipeline Validation
+- Check all layers: RAW → STAGING → ANALYTICS
+- Verify stream status
+- Compare row counts across layers
+- Check for data quality issues
+- Report processing latency
+
+## Refactoring Rules
+
+When changing project structure:
+1. Update all documentation immediately
+2. Update all internal links and references
+3. Maintain backward compatibility temporarily
+4. Deprecate old interfaces before removing
+5. Run full test suite before committing
+6. Update README.md structure diagram
+
+When adding new features:
+1. Create documentation first
+2. Implement core logic in Python
+3. Add cross-platform wrappers in `tools/`
+4. Write and run unit tests
+5. Update relevant guides
+6. Add to CHANGELOG.md
+
+## Maintenance Rules
+
+### Regular Tasks
+- Update dependencies quarterly
+- Review and prune deprecated code
+- Maintain documentation accuracy
+- Update platform guide with new issues
+- Keep examples working
+
+### Before Each Release
+- [ ] Run full test suite on all platforms
+- [ ] Update version numbers
+- [ ] Update CHANGELOG.md
+- [ ] Test QUICKSTART.md end-to-end
+- [ ] Verify all documentation links work
+- [ ] Check SQL scripts are idempotent
+
+## Quick Reference
+
+### Add New CLI Command
+1. Create `python/cli/newcommand.py` with `main()` function
+2. Add unit tests in `python/tests/test_newcommand.py`
+3. Create `tools/newcommand` (Unix) and `tools/newcommand.bat` (Windows)
+4. Document in appropriate `docs/0X-*.md` guide
+5. Add to `tools/` section in README.md
+
+### Add New SQL Script
+1. Determine purpose (setup, validation, monitoring, cleanup)
+2. Place in appropriate `sql/0X_*/` directory
+3. Follow numbering sequence
+4. Add header comment with purpose and dependencies
+5. Make script idempotent
+6. Document in `docs/02-DEPLOYMENT.md`
+
+### Add New Documentation
+1. Determine if it's a numbered guide or reference doc
+2. Create in `docs/` with appropriate naming
+3. Add table of contents
+4. Include prerequisites, steps, troubleshooting
+5. Link from README.md and related guides
+6. Add to navigation in other documents
+
+---
+
+**These rules ensure:**
+- ✅ Clear project organization
+- ✅ Platform compatibility
+- ✅ Maintainable documentation
+- ✅ Consistent user experience
+- ✅ High code quality
+- ✅ Easy onboarding for new contributors
+
