@@ -58,12 +58,12 @@ You are advising a property-security team that needs real-time badge telemetry w
 1. Install Python dependencies: `pip install -r python/requirements.txt` inside a virtual environment.
 2. Launch simulator with aligned parameters:
    ```bash
-   python -m python.rfid_simulator.simulator --duration-days 1 --events-per-second 200
+   python -m python.simulator --duration-days 1 --events-per-second 200
    ```
 3. Validate ingestion health:
-   - `scripts/check_channel_status.sh`
-   - Snowsight query: `SELECT * FROM V_INGESTION_METRICS ORDER BY event_hour DESC LIMIT 20;`
-4. Partner delivers real payloads using `scripts/post_events.sh` as a template.
+   - `tools/validate full`
+   - Snowsight query: `SELECT * FROM V_CHANNEL_STATUS ORDER BY check_time DESC LIMIT 20;`
+4. Partner delivers real payloads using the REST API templates in `docs/REST_API_GUIDE.md`.
 
 ## Phase 4 – Real-Time Dashboards & Alerting (30 minutes)
 
@@ -87,7 +87,7 @@ You are advising a property-security team that needs real-time badge telemetry w
    - Attach each partner’s warehouses to dedicated resource monitors.
    - Require tagging at creation; automate via Terraform or Snowflake CLI.
 4. **Field Divergence**
-   - Document transformations in `help/DATA_DICTIONARY.md` and add partner-specific views (`V_PARTNER_A_EVENTS`) to abstract differences.
+   - Document transformations in `docs/DATA_DICTIONARY.md` and add partner-specific views (`V_PARTNER_A_EVENTS`) to abstract differences.
 
 ## Executive Summary (Shareable Slide Text)
 

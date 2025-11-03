@@ -6,9 +6,9 @@ This project is designed to work on **Windows**, **macOS**, and **Linux**. This 
 
 | Task | Windows | macOS/Linux |
 |------|---------|-------------|
-| Check Prerequisites | `check_prerequisites.bat` | `./check_prerequisites.sh` |
-| Validate Pipeline | `validate_pipeline.bat` | `./validate_pipeline.sh` |
-| Run Simulator | `python -m python.rfid_simulator.simulator` | `python -m python.rfid_simulator.simulator` |
+| Check Prerequisites | `tools\check` | `tools/check` |
+| Validate Pipeline | `tools\validate` | `tools/validate` |
+| Run Simulator | `tools\simulate` | `tools/simulate` |
 | Run Setup SQL | Use Snowflake CLI | Use Snowflake CLI |
 
 ## Universal Python Commands
@@ -17,13 +17,13 @@ All platforms can use Python commands directly:
 
 ```bash
 # Check prerequisites
-python -m python.cli_tools.check_prerequisites --auto-update
+python -m python.cli.check --auto-update
 
 # Validate pipeline
-python -m python.cli_tools.validate_pipeline quick
+python -m python.cli.validate quick
 
 # Run simulator
-python -m python.rfid_simulator.simulator
+python -m python.simulator
 ```
 
 ## Windows-Specific Instructions
@@ -40,21 +40,17 @@ python -m python.rfid_simulator.simulator
 ### Running Commands
 
 ```powershell
-# Check prerequisites
-check_prerequisites.bat --auto-update
+# Check prerequisites with auto-update
+tools/check --auto-update
 
-# Install Python dependencies
-pip install -r python\requirements.txt
-
-# Configure environment
-copy config\.env.example config\.env
-# Edit config\.env with your credentials
+# Deploy to Snowflake
+tools/deploy
 
 # Run simulator
-python -m python.rfid_simulator.simulator
+tools/simulate
 
 # Validate pipeline
-validate_pipeline.bat quick
+tools/validate quick
 ```
 
 ### Path Separators
@@ -62,7 +58,7 @@ validate_pipeline.bat quick
 Windows uses backslashes (`\`) for paths:
 ```
 config\.env
-python\rfid_simulator\simulator.py
+python\simulator\simulator.py
 ```
 
 ### Line Endings
@@ -75,15 +71,12 @@ git config core.autocrlf true
 
 ### Private Key Generation
 
-On Windows, use the Python-based key generator (coming soon) or Git Bash:
+On Windows, use Git Bash or WSL for OpenSSL commands:
 
 ```bash
-# Option 1: Use Git Bash (if installed)
-bash scripts/setup_auth.sh
-
-# Option 2: Generate manually with OpenSSL
-openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out config\rsa_key.p8 -nocrypt
-openssl rsa -in config\rsa_key.p8 -pubout -out config\rsa_key.pub
+# Generate development key pair
+openssl genrsa -out config/rsa_key.p8 2048
+openssl rsa -in config/rsa_key.p8 -pubout -out config/rsa_key.pub
 ```
 
 ## macOS-Specific Instructions
@@ -105,7 +98,7 @@ openssl rsa -in config\rsa_key.p8 -pubout -out config\rsa_key.pub
 
 ```bash
 # Check prerequisites
-./check_prerequisites.sh --auto-update
+tools/check --auto-update
 
 # Install Python dependencies
 pip3 install -r python/requirements.txt
@@ -115,10 +108,10 @@ cp config/.env.example config/.env
 # Edit config/.env with your credentials
 
 # Run simulator
-python3 -m python.rfid_simulator.simulator
+tools/simulate
 
 # Validate pipeline
-./validate_pipeline.sh quick
+tools/validate quick
 ```
 
 ### Make Scripts Executable
@@ -126,9 +119,7 @@ python3 -m python.rfid_simulator.simulator
 If you get "Permission denied":
 
 ```bash
-chmod +x check_prerequisites.sh
-chmod +x validate_pipeline.sh
-chmod +x scripts/*.sh
+chmod +x tools/check tools/deploy tools/simulate tools/validate
 ```
 
 ## Linux-Specific Instructions
@@ -163,7 +154,7 @@ cp config/.env.example config/.env
 # Edit config/.env with your credentials
 
 # Run simulator
-python3 -m python.rfid_simulator.simulator
+python3 -m python.simulator
 
 # Validate pipeline
 ./validate_pipeline.sh quick
@@ -174,7 +165,6 @@ python3 -m python.rfid_simulator.simulator
 ```bash
 chmod +x check_prerequisites.sh
 chmod +x validate_pipeline.sh
-chmod +x scripts/*.sh
 ```
 
 ## Common Cross-Platform Issues
@@ -287,7 +277,7 @@ SNOWFLAKE_PRIVATE_KEY_PATH=/home/username/keys/rsa_key.p8
 Run this command on any platform to verify everything works:
 
 ```bash
-python -m python.cli_tools.check_prerequisites
+python -m python.cli.check
 ```
 
 Expected output:

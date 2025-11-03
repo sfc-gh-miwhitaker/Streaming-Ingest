@@ -25,6 +25,7 @@ MANIFEST
 
 # Virtual environments
 venv/
+streaming-ingest-example/
 env/
 ENV/
 env.bak/

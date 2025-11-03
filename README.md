@@ -2,6 +2,63 @@
 
 A production-grade reference implementation demonstrating RFID badge event ingestion using Snowflake's native Snowpipe Streaming REST API. **Zero external infrastructure required** - the RFID vendor POSTs directly to Snowflake endpoints.
 
+## TL;DR - Send Data with curl
+
+Once deployed, send RFID events directly to Snowflake with simple HTTP POST:
+
+```bash
+# 1. Get your JWT token (60 min expiry)
+export JWT_TOKEN=$(python -c "from python.simulator.auth import SnowflakeAuth; \
+  from pathlib import Path; print(SnowflakeAuth.from_env_file(Path('config/.env')).generate_jwt())")
+
+# 2. Get control plane hostname
+CONTROL_HOST=$(curl -s -H "Authorization: Bearer ${JWT_TOKEN}" \
+  "https://YOUR_ACCOUNT.snowflakecomputing.com/v2/streaming/hostname")
+
+# 3. Open channel (do once, reuse for many inserts)
+CHANNEL_INFO=$(curl -s -X POST \
+  -H "Authorization: Bearer ${JWT_TOKEN}" \
+  -H "Content-Type: application/json" \
+  "https://${CONTROL_HOST}/v2/streaming/databases/SNOWFLAKE_EXAMPLE/schemas/STAGE_BADGE_TRACKING/pipes/BADGE_EVENTS_PIPE:open-channel" \
+  -d '{"channel_name": "my_rfid_channel"}')
+
+# Extract tokens
+INGEST_HOST=$(echo $CHANNEL_INFO | python -c "import sys,json; print(json.load(sys.stdin)['ingest_host'])")
+SCOPED_TOKEN=$(echo $CHANNEL_INFO | python -c "import sys,json; print(json.load(sys.stdin)['scoped_token'])")
+CONTINUATION_TOKEN=$(echo $CHANNEL_INFO | python -c "import sys,json; print(json.load(sys.stdin)['continuation_token'])")
+
+# 4. Send badge events!
+curl -X POST \
+  -H "Authorization: Bearer ${SCOPED_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -H "X-Snowflake-Streaming-Continuation-Token: ${CONTINUATION_TOKEN}" \
+  "https://${INGEST_HOST}/v2/streaming/databases/SNOWFLAKE_EXAMPLE/schemas/STAGE_BADGE_TRACKING/pipes/BADGE_EVENTS_PIPE/channels/my_rfid_channel:insert-rows" \
+  -d '{
+    "rows": [
+      {
+        "badge_id": "BADGE_12345",
+        "zone_id": "ZONE_LOBBY",
+        "event_timestamp": "2025-01-15T14:30:00Z",
+        "event_type": "entry",
+        "reader_id": "READER_001"
+      },
+      {
+        "badge_id": "BADGE_67890",
+        "zone_id": "ZONE_FLOOR2",
+        "event_timestamp": "2025-01-15T14:30:05Z",
+        "event_type": "exit",
+        "reader_id": "READER_012"
+      }
+    ]
+  }'
+```
+
+**That's it!** Data flows: Raw → Staging → Analytics (via Streams & Tasks). Query in <10 seconds.
+
+See [`docs/REST_API_GUIDE.md`](docs/REST_API_GUIDE.md) for complete API reference and error handling.
+
+---
+
 ## Overview
 
 This project demonstrates how to ingest several million RFID badge events over a 10-day period using Snowflake's high-performance streaming architecture (GA September 2025). Perfect for property access control, asset tracking, and real-time location systems.
@@ -17,108 +74,90 @@ This project demonstrates how to ingest several million RFID badge events over a
 
 ## Quick Start
 
-> **📝 Windows Users**: See [`help/PLATFORM_GUIDE.md`](help/PLATFORM_GUIDE.md) for Windows-specific instructions using `.bat` files.
+> **Need a guided walkthrough?** Start with [`QUICKSTART.md`](QUICKSTART.md) for the 5-minute version or follow the numbered docs in `docs/`.
 
-### Prerequisites
-
-- Snowflake account (any edition, AWS region)
-- Snowflake CLI v3.0+ ([Install Guide](https://docs.snowflake.com/en/developer-guide/snowflake-cli-v2/installation/installation))
-- Key-pair authentication configured (see `config/jwt_keypair_setup.md`)
-- Python 3.8+ for simulator
-
-**Check Prerequisites & Update CLI:**
+### Setup & Run
 
 ```bash
-# Windows
-check_prerequisites.bat --auto-update
+# 0. Automated Setup (RECOMMENDED - creates venv, installs deps, runs checks)
+#   macOS/Linux
+sh tools/setup-env.sh
+#   Windows
+tools\setup-env.bat
 
-# macOS/Linux  
-./check_prerequisites.sh --auto-update
+# OR Manual Setup:
+# python -m venv streaming-ingest-example
+# source streaming-ingest-example/bin/activate  # macOS/Linux
+# streaming-ingest-example\Scripts\activate    # Windows
+# pip install -r python/requirements.txt
 
-# Or use Python directly (all platforms)
-python -m python.cli_tools.check_prerequisites --auto-update
-```
+# 1. Check your environment (if not using automated setup)
+#   Windows
+tools\check.bat --auto-update
+#   macOS/Linux
+sh tools/check.sh --auto-update
 
-This will verify:
-- ✓ Snowflake CLI is installed and up-to-date
-- ✓ Python version (3.8+)
-- ✓ Required Python packages
-- ✓ Configuration file exists
-- ✓ JWT private key is configured
-
-### 3-Step Setup
-
-**Step 1: Deploy to Snowflake**
-
-Execute the SQL scripts in order:
-
-```bash
-# Navigate to sql/setup directory
-cd sql/setup
-
-# Execute each script in Snowflake (SnowSQL, Snowsight, or any SQL client)
-# Scripts are numbered for execution order
-01_database_and_schemas.sql
-02_raw_table.sql
-03_pipe_object.sql
-04_staging_table.sql
-05_dimension_tables.sql
-06_fact_table.sql
-07_stream.sql
-08_tasks.sql
-```
-
-**Step 2: Configure Authentication**
-
-```bash
-# Copy environment template
+# 2. Configure Snowflake authentication
 cp config/.env.example config/.env
+# Edit config/.env with your account, user, private key path, and passphrase
 
-# Edit config/.env with your Snowflake account details
-# Follow config/jwt_keypair_setup.md for key-pair setup
+# 3. Deploy Snowflake objects (Windows: tools\deploy.bat)
+sh tools/deploy.sh
+
+# 4. Generate sample badge events (Windows: tools\simulate.bat, Ctrl+C to stop)
+sh tools/simulate.sh
+
+# 5. Validate the pipeline end-to-end (Windows: tools\validate.bat)
+sh tools/validate.sh quick
 ```
 
-**Step 3: Run the Simulator**
+All commands support `--help` for additional options. For detailed steps (key generation, advanced deployment, troubleshooting), move through the numbered docs:
 
-```bash
-# Install Python dependencies
-pip install -r python/requirements.txt
-
-# Run the RFID vendor simulator
-python -m python.rfid_simulator.simulator
-```
+1. [`docs/01-SETUP.md`](docs/01-SETUP.md)
+2. [`docs/02-DEPLOYMENT.md`](docs/02-DEPLOYMENT.md)
+3. [`docs/03-CONFIGURATION.md`](docs/03-CONFIGURATION.md)
+4. [`docs/04-RUNNING.md`](docs/04-RUNNING.md)
+5. [`docs/05-MONITORING.md`](docs/05-MONITORING.md)
 
 ### First Event Test
 
-Send a test event using curl:
-
-```bash
-# See scripts/post_events.sh for complete example
-source scripts/setup_auth.sh   # Generate JWT token in current shell
-source scripts/open_channel.sh # Open streaming channel (exports tokens)
-./scripts/post_events.sh       # POST test event
-```
+Want to send a single event via REST? Follow the step-by-step instructions in [`docs/04-RUNNING.md`](docs/04-RUNNING.md) and [`docs/REST_API_GUIDE.md`](docs/REST_API_GUIDE.md). They include ready-to-run `curl` examples and JWT authentication tips.
 
 ## Guided Customer Lab
 
-Need the storyline for executives and integrators? Start with `help/LAB_GUIDE.md`. It compresses the deployment into five phases, spotlights the Snowpipe Streaming GA enhancements, and arms partners with the instructions they need even if they cannot run the full lab immediately.
+Need the storyline for executives and integrators? Start with [`docs/LAB_GUIDE.md`](docs/LAB_GUIDE.md). It compresses the deployment into five phases, spotlights the Snowpipe Streaming GA enhancements, and arms partners with the instructions they need even if they cannot run the full lab immediately.
 
 ## Project Structure
 
 ```
-├── sql/                      # Snowflake SQL scripts
-│   ├── setup/               # Database, tables, PIPE, streams, tasks
-│   ├── views/               # Monitoring views
-│   └── data_quality/        # Data quality checks
-├── python/                   # Python simulator and utilities
-│   ├── rfid_simulator/      # RFID vendor simulator
-│   ├── load_testing/        # Load testing with Locust
-│   └── shared/              # Shared models and validation
-├── scripts/                  # Shell scripts for REST API interaction
-├── config/                   # Configuration templates
-├── help/                     # Detailed documentation
-└── cleanup/                  # Teardown scripts
+├── README.md               # Overview (you're here)
+├── QUICKSTART.md           # 5-minute setup guide
+├── docs/                   # Numbered walkthrough & reference docs
+│   ├── 01-SETUP.md
+│   ├── 02-DEPLOYMENT.md
+│   ├── 03-CONFIGURATION.md
+│   ├── 04-RUNNING.md
+│   ├── 05-MONITORING.md
+│   └── PLATFORM_GUIDE.md, REST_API_GUIDE.md, ...
+├── tools/                  # Cross-platform CLI wrappers (check, deploy, simulate, validate)
+├── sql/                    # Snowflake SQL scripts (numbered)
+│   ├── 01_setup/
+│   ├── 02_validation/
+│   ├── 03_monitoring/
+│   ├── 04_data_quality/
+│   └── 99_cleanup/
+├── python/                 # Python packages
+│   ├── cli/                # Command-line utilities
+│   ├── simulator/          # RFID event simulator
+│   ├── shared/             # Shared helpers & validation
+│   └── tests/              # pytest test suite
+├── config/                 # `.env` template and key setup guide
+└── examples/               # Sample data & customization templates
 ```
+
+## Examples
+
+- `examples/custom_simulation.py` – run a short-duration simulation (2 minutes at 50 events/sec) for quick testing or customization. Execute with `python examples/custom_simulation.py`.
 
 ## Architecture
 
@@ -154,13 +193,15 @@ Property access control with RFID badges:
 
 | Document | Description |
 |----------|-------------|
-| `help/GETTING_STARTED.md` | Step-by-step 5-minute quickstart |
-| `help/ARCHITECTURE.md` | Detailed architecture and design decisions |
-| `help/REST_API_GUIDE.md` | Complete REST API reference with examples |
-| `help/LAB_GUIDE.md` | Customer & partner lab storyline and scaling playbook |
-| `help/VENDOR_INTEGRATION.md` | Guide for RFID vendor integration |
-| `help/TUNING_GUIDE.md` | Performance optimization strategies |
-| `help/DATA_DICTIONARY.md` | Complete schema documentation |
+| `docs/01-SETUP.md` | Install prerequisites and verify environment |
+| `docs/02-DEPLOYMENT.md` | Deploy Snowflake database, schemas, streams, and tasks |
+| `docs/03-CONFIGURATION.md` | Configure JWT authentication and `.env` settings |
+| `docs/04-RUNNING.md` | Run the simulator and validate pipeline health |
+| `docs/05-MONITORING.md` | Monitor, troubleshoot, and optimize the pipeline |
+| `docs/PLATFORM_GUIDE.md` | Platform-specific notes for Windows, macOS, Linux |
+| `docs/REST_API_GUIDE.md` | REST API reference and advanced ingestion patterns |
+| `docs/ARCHITECTURE.md` | Detailed architecture and design decisions |
+| `docs/DATA_DICTIONARY.md` | Dimension and fact table definitions |
 
 ## Key Components
 
@@ -225,7 +266,7 @@ SELECT * FROM V_END_TO_END_LATENCY;
 SELECT * FROM V_PARTITION_EFFICIENCY;
 ```
 
-For live dashboards, pin these queries in Snowsight Worksheets or your BI tool of choice and point stakeholders to the quick narrative in `help/LAB_GUIDE.md` (Phase 4) for recommended charts and KPIs.
+For live dashboards, pin these queries in Snowsight Worksheets or your BI tool of choice and point stakeholders to the quick narrative in [`docs/LAB_GUIDE.md`](docs/LAB_GUIDE.md) (Phase 4) for recommended charts and KPIs.
 
 ## Cleanup
 
@@ -233,10 +274,10 @@ To remove all deployed resources:
 
 ```bash
 # Complete teardown (drops all objects)
-snowsql -f cleanup/teardown_all.sql
+snowsql -f sql/99_cleanup/teardown_all.sql
 
 # Stop tasks only (preserve data)
-snowsql -f cleanup/teardown_tasks_only.sql
+snowsql -f sql/99_cleanup/teardown_tasks_only.sql
 ```
 
 ## Performance Characteristics
@@ -252,7 +293,7 @@ snowsql -f cleanup/teardown_tasks_only.sql
 ## Support
 
 For questions or issues:
-1. Review documentation in `help/` directory
+1. Review documentation in `docs/` directory
 2. Check Snowflake documentation for Snowpipe Streaming
 3. Examine monitoring views for ingestion health
 

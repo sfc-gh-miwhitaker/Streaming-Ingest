@@ -77,6 +77,6 @@ DESC PIPE badge_events_pipe;
 --    POST /v2/streaming/databases/SNOWFLAKE_EXAMPLE/schemas/STAGE_BADGE_TRACKING/pipes/BADGE_EVENTS_PIPE/channels/rfid_channel_001:insert-rows
 --    Body: {"rows": [{"badge_id": "BADGE-001", ...}]}
 -- 
--- See help/REST_API_GUIDE.md for complete examples with authentication.
+-- See docs/REST_API_GUIDE.md for complete examples with authentication.
 -- ============================================================================
 

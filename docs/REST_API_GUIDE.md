@@ -20,24 +20,8 @@ The Snowpipe Streaming REST API (GA September 2025) provides a native HTTP inter
 
 All API requests require JWT token authentication using RS256 algorithm.
 
-**Generate JWT Token** (Python):
-```python
-from python.rfid_simulator.auth import SnowflakeAuth
-
-auth = SnowflakeAuth(
-    account="MYORG",
-    user="MYUSER",
-    private_key_path="./config/private_key.pem"
-)
-
-jwt_token = auth.generate_jwt_token()
-```
-
-**Generate JWT Token** (bash):
-```bash
-source scripts/setup_auth.sh
-# Sets JWT_TOKEN environment variable
-```
+**Generate JWT Token (bash):**
+See [`docs/03-CONFIGURATION.md`](docs/03-CONFIGURATION.md) for shell-friendly commands to export `JWT_TOKEN` using your key pair.
 
 **Token Properties**:
 - Algorithm: RS256
@@ -364,13 +348,7 @@ Monthly Cost: ~0.36 credits
 
 ## Complete Example Scripts
 
-### Shell Script
-
-See `scripts/post_events.sh` for complete curl example.
-
-### Python Script
-
-See `python/rfid_simulator/simulator.py` for complete implementation.
+1. Source environment variables (see [`docs/03-CONFIGURATION.md`](docs/03-CONFIGURATION.md))
 
 ## Security Considerations
 
@@ -421,5 +399,8 @@ SELECT * FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY(...));
 
 - [Official Snowpipe Streaming Docs](https://docs.snowflake.com/en/user-guide/data-load-snowpipe-streaming)
 - [REST API Reference](https://docs.snowflake.com/en/developer-guide/snowflake-rest-api)
-- See `help/VENDOR_INTEGRATION.md` for production deployment guide
+- See [`docs/VENDOR_INTEGRATION.md`](docs/VENDOR_INTEGRATION.md) for production deployment guide.
+
+
+See [`docs/03-CONFIGURATION.md`](docs/03-CONFIGURATION.md) for detailed instructions on exporting JWT tokens for use with `curl`.
 

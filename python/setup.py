@@ -30,7 +30,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "rfid-simulator=rfid_simulator.simulator:main",
+            "rfid-simulator=python.simulator.simulator:main",
         ],
     },
     classifiers=[

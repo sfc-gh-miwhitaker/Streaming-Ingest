@@ -6,19 +6,48 @@ Get the RFID Badge Tracking demo running in 5 minutes! This guide assumes you al
 
 Ingest and validate 1,000+ badge events in your Snowflake account.
 
-## 📋 Prerequisites Check
+## 📋 Step 0: Virtual Environment (MANDATORY)
 
-**First, verify you have everything:**
+**Option A: Automated Setup (RECOMMENDED)**
+
+```bash
+# This script creates venv, installs deps, and runs checks automatically
+# macOS/Linux
+sh tools/setup-env.sh
+
+# Windows
+tools\setup-env.bat
+```
+
+**Option B: Manual Setup**
+
+```bash
+# Create venv
+python -m venv streaming-ingest-example
+
+# Activate (your prompt should show venv name)
+source streaming-ingest-example/bin/activate  # macOS/Linux
+streaming-ingest-example\Scripts\activate     # Windows
+
+# Install dependencies
+pip install -r python/requirements.txt
+```
+
+---
+
+## 📋 Step 1: Prerequisites Check
+
+**Verify you have everything:**
 
 ```bash
 # Windows
 tools\check.bat
 
 # macOS/Linux
-tools/check
+sh tools/check.sh
 
 # Or Python directly (all platforms)
-python -m python.cli_tools.check_prerequisites
+python -m python.cli.check
 ```
 
 **Expected output:** All green checkmarks ✓
@@ -27,9 +56,9 @@ python -m python.cli_tools.check_prerequisites
 
 ---
 
-## 🚀 Four-Step Setup
+## 🚀 Setup Steps
 
-### Step 1: Configure Your Snowflake Connection (1 minute)
+### Step 2: Configure Your Snowflake Connection (1 minute)
 
 ```bash
 # Copy the configuration template
@@ -44,14 +73,13 @@ SNOWFLAKE_PRIVATE_KEY_PATH=config/rsa_key.p8
 
 **Generate JWT keys** (if you don't have them):
 ```bash
-# See config/jwt_keypair_setup.md for detailed instructions
-# Or run the automated setup (macOS/Linux):
-./scripts/setup_auth.sh
+# Follow the step-by-step instructions in docs/03-CONFIGURATION.md
+# (includes OpenSSL commands for Windows, macOS, and Linux)
 ```
 
 ---
 
-### Step 2: Deploy to Snowflake (2 minutes)
+### Step 3: Deploy to Snowflake (2 minutes)
 
 Run all setup SQL scripts in order:
 
@@ -71,21 +99,25 @@ snow sql -f 07_stream.sql
 snow sql -f 08_tasks.sql
 ```
 
-**Or use the automated script** (macOS/Linux):
+**Or use the automated script:**
 ```bash
-./scripts/run_setup_sqls.sh
+# Windows
+tools\deploy.bat
+
+# macOS/Linux
+sh tools/deploy.sh
 ```
 
 ---
 
-### Step 3: Generate Test Data (30 seconds)
+### Step 4: Generate Test Data (30 seconds)
 
 ```bash
 # Install Python dependencies (if you haven't)
 pip install -r python/requirements.txt
 
 # Run the simulator
-python -m python.rfid_simulator.simulator
+python -m python.simulator
 ```
 
 **Let it run for ~30 seconds**, then press `Ctrl+C` to stop.
@@ -100,17 +132,17 @@ Total events sent: 1,200
 
 ---
 
-### Step 4: Validate the Pipeline (30 seconds)
+### Step 5: Validate the Pipeline (30 seconds)
 
 ```bash
 # Windows
 tools\validate.bat quick
 
 # macOS/Linux
-tools/validate quick
+sh tools/validate.sh quick
 
 # Or Python directly
-python -m python.cli_tools.validate_pipeline quick
+python -m python.cli.validate quick
 ```
 
 **Expected output:**
@@ -168,7 +200,7 @@ LIMIT 5;
 ```bash
 # Generate data for 10 days at 200 events/sec
 # (Will run until you press Ctrl+C)
-python -m python.rfid_simulator.simulator --duration-days 10 --events-per-second 200
+python -m python.simulator --duration-days 10 --events-per-second 200
 ```
 
 ---
@@ -194,7 +226,7 @@ python -m python.rfid_simulator.simulator --duration-days 10 --events-per-second
 
 ### Still stuck?
 1. Check `docs/PLATFORM_GUIDE.md` for platform-specific issues
-2. Run full validation: `python -m python.cli_tools.validate_pipeline full`
+2. Run full validation: `python -m python.cli.validate full`
 3. Review `docs/05-MONITORING.md` for debugging techniques
 
 ---

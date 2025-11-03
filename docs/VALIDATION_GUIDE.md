@@ -7,13 +7,13 @@ After inserting 3000 rows, use these commands to validate the data flow through 
 ### Option 1: Using the validation script (Cross-Platform)
 ```bash
 # Windows
-validate_pipeline.bat quick
+tools\validate quick
 
 # macOS/Linux
-./validate_pipeline.sh quick
+tools/validate quick
 
 # Or Python directly (all platforms)
-python -m python.cli_tools.validate_pipeline quick
+python -m python.cli.validate quick
 ```
 
 ### Option 2: Direct SQL command
@@ -49,7 +49,7 @@ ANALYTICS  | 3000
 
 For comprehensive analysis:
 ```bash
-./scripts/validate_pipeline.sh full
+tools/validate full
 ```
 
 Or run directly:
